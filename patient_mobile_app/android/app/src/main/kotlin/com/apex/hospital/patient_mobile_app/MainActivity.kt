@@ -1,0 +1,5 @@
+package com.apex.hospital.patient_mobile_app
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity: FlutterActivity()
