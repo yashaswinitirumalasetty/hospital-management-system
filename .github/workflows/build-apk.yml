@@ -33,9 +33,13 @@ jobs:
       - name: Verify Flutter Installation
         run: flutter doctor -v
 
-      - name: Install Dependencies
+      - name: Install Dependencies & Scaffold Android
         working-directory: patient_mobile_app
-        run: flutter pub get
+        run: |
+          rm -rf android
+          flutter create . --platforms=android --org com.apex.hospital
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET"\/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"\/>' android/app/src/main/AndroidManifest.xml
+          flutter pub get
 
       - name: Build Android Release APK
         working-directory: patient_mobile_app
