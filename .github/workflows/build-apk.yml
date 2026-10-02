@@ -8,6 +8,9 @@ on:
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-apk:
     name: Build Release APK
@@ -39,6 +42,7 @@ jobs:
           rm -rf android
           flutter create . --platforms=android --org com.apex.hospital
           sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET"\/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"\/>' android/app/src/main/AndroidManifest.xml
+          sed -i 's/<application /<application android:usesCleartextTraffic="true" /' android/app/src/main/AndroidManifest.xml
           flutter pub get
 
       - name: Build Android Release APK
@@ -51,3 +55,15 @@ jobs:
           name: apex-patient-app-release
           path: patient_mobile_app/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+
+      - name: Copy Named Release APK
+        run: cp patient_mobile_app/build/app/outputs/flutter-apk/app-release.apk ApexPatientApp-v1.0.apk
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: "Apex Patient Mobile App v1.0.0"
+          files: ApexPatientApp-v1.0.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

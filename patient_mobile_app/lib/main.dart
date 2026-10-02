@@ -8,9 +8,12 @@ import 'providers/records_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/navigation/main_nav_screen.dart';
 
+import 'core/services/api_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await ApiService.loadServerUrl();
   final authProvider = AuthProvider();
   await authProvider.tryAutoLogin();
 

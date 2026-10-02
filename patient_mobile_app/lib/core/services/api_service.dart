@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/api_constants.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -15,6 +16,39 @@ class ApiException implements Exception {
 class ApiService {
   static const String tokenKey = 'patient_auth_token';
   static const String userKey = 'patient_user_data';
+  static const String serverUrlKey = 'custom_server_base_url';
+
+  // Load configured server URL from storage
+  static Future<void> loadServerUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedUrl = prefs.getString(serverUrlKey);
+    if (savedUrl != null && savedUrl.isNotEmpty) {
+      ApiConstants.setBaseUrl(savedUrl);
+    }
+  }
+
+  // Save server URL
+  static Future<void> saveServerUrl(String newUrl) async {
+    ApiConstants.setBaseUrl(newUrl);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(serverUrlKey, ApiConstants.baseUrl);
+  }
+
+  // Test server connectivity
+  static Future<bool> testConnection(String url) async {
+    try {
+      var clean = url.trim();
+      if (clean.endsWith('/')) clean = clean.substring(0, clean.length - 1);
+      final healthEndpoint = clean.endsWith('/api') ? '$clean/health' : '$clean/api/health';
+
+      final res = await http.get(Uri.parse(healthEndpoint)).timeout(
+        const Duration(seconds: 4),
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
 
   // Get stored token
   static Future<String?> getToken() async {
@@ -50,11 +84,13 @@ class ApiService {
   static Future<dynamic> get(String url) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(Uri.parse(url), headers: headers);
+      final response = await http
+          .get(Uri.parse(url), headers: headers)
+          .timeout(const Duration(seconds: 10));
       return _processResponse(response);
     } catch (e) {
       if (e is ApiException) rethrow;
-      throw ApiException('Network connection error. Check server URL.');
+      throw ApiException('Cannot reach hospital server at ${ApiConstants.baseUrl}. Please check Wi-Fi connection.');
     }
   }
 
@@ -62,15 +98,17 @@ class ApiService {
   static Future<dynamic> post(String url, Map<String, dynamic> body) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.post(
-        Uri.parse(url),
-        headers: headers,
-        body: jsonEncode(body),
-      );
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: headers,
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 10));
       return _processResponse(response);
     } catch (e) {
       if (e is ApiException) rethrow;
-      throw ApiException('Network connection error. Check server URL.');
+      throw ApiException('Cannot reach hospital server at ${ApiConstants.baseUrl}. Please check Wi-Fi connection.');
     }
   }
 

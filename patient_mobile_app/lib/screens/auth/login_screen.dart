@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/constants/api_constants.dart';
+import '../../core/services/api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../navigation/main_nav_screen.dart';
@@ -46,9 +48,129 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(
           content: Text(auth.errorMessage!),
           backgroundColor: AppTheme.danger,
+          action: SnackBarAction(
+            label: 'Settings',
+            textColor: Colors.white,
+            onPressed: _showServerDialog,
+          ),
         ),
       );
     }
+  }
+
+  void _showServerDialog() {
+    final urlController = TextEditingController(text: ApiConstants.baseUrl);
+    bool isTesting = false;
+    String? testResult;
+    bool? testSuccess;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.dns_rounded, color: AppTheme.primary, size: 22),
+              SizedBox(width: 8),
+              Text('Server Connection', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Enter the backend API URL. Make sure your phone and PC are connected to the same Wi-Fi network.',
+                style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: urlController,
+                decoration: const InputDecoration(
+                  labelText: 'Backend API URL',
+                  hintText: 'http://192.168.0.7:5000/api',
+                  prefixIcon: Icon(Icons.link_rounded, size: 20),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (testResult != null)
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: (testSuccess ?? false) ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        (testSuccess ?? false) ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+                        color: (testSuccess ?? false) ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          testResult!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: (testSuccess ?? false) ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: isTesting
+                    ? null
+                    : () async {
+                        setDialogState(() {
+                          isTesting = true;
+                          testResult = null;
+                        });
+                        final ok = await ApiService.testConnection(urlController.text.trim());
+                        setDialogState(() {
+                          isTesting = false;
+                          testSuccess = ok;
+                          testResult = ok
+                              ? 'Connected successfully to backend!'
+                              : 'Could not reach server. Verify PC IP & Wi-Fi.';
+                        });
+                      },
+                icon: isTesting
+                    ? const SizedBox(height: 14, width: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.wifi_find_rounded, size: 18),
+                label: const Text('Test Connection'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await ApiService.saveServerUrl(urlController.text.trim());
+                if (mounted) {
+                  setState(() {});
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Server URL updated!'),
+                      backgroundColor: AppTheme.success,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Save URL'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -107,7 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: 32),
 
                 // Login Form Card
                 Container(
@@ -208,7 +330,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+
+                // Server URL Config Button
+                TextButton.icon(
+                  onPressed: _showServerDialog,
+                  icon: const Icon(Icons.tune_rounded, size: 16, color: AppTheme.textMuted),
+                  label: Text(
+                    'Server: ${ApiConstants.baseUrl}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textMuted,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
 
                 // Quick Demo Account Hint
                 Container(
