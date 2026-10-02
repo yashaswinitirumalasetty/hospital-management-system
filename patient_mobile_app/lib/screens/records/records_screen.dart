@@ -85,7 +85,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                                     Icon(
                                       isConsultation
                                           ? Icons.medical_information_rounded
-                                          : Icons.vital_signs_rounded,
+                                          : Icons.monitor_heart_rounded,
                                       color: isConsultation
                                           ? AppTheme.primary
                                           : const Color(0xFF10B981),
